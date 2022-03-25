@@ -12,7 +12,7 @@ contains
 
     subroutine StoreData(filename, DataArray) 
         character(len=*)                        :: filename
-        type (Atom), allocatable, intent(out)   :: DataArray(:)
+        type(Atom), allocatable, intent(out)    :: DataArray(:)
         integer                                 :: numatoms, i 
 
         open(unit=20, file=filename, action='read')

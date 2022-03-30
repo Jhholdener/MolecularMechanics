@@ -5,20 +5,21 @@ program prog1
 
    implicit none
    
-   integer              :: test(3,3)
-   integer, allocatable :: PairMatrix(:,:)
+   integer              ::  numtriplets, numdihedrals
+   integer, allocatable :: PairMatrix(:,:), TripletMatrix(:,:), DihedralMatrix(:,:)
    type(atom), allocatable :: DataArray(:)
-   real                 :: dummy
+   real                 :: dummy1, dummy2, dummy3
 
-   test(1, :) = (/1,2,3/)
-   test(2, :) = (/4,5,6/)
-   test(3, :) = (/7,8,9/)
-
-   print "(3i3)", test
-   print *, test(2,:)
    
-   call StoreData("c4h10.xyz", DataArray)
-   call FindPairs("c4h10.xyz", PairMatrix)
-   dummy = StretchEnergy(PairMatrix, DataArray)
-   print *, dummy
+   call StoreData("c4h10.xyz", DataArray, numtriplets, numdihedrals)
+   call FindPairs(DataArray, PairMatrix)
+   call FindTriplets(PairMatrix,numtriplets,TripletMatrix)
+   call FindQuadruplets(PairMatrix, numdihedrals,DihedralMatrix)
+   dummy1 = StretchEnergy(PairMatrix, DataArray)
+   dummy2 = BendEnergy(TripletMatrix, DataArray)
+   dummy3 = TorsEnergy(DihedralMatrix, DataArray)
+   print *, 'stretchenergy:',dummy1
+   print *, 'bendenergy:',dummy2
+   print *, 'torsenergy:',dummy3
+
 end program

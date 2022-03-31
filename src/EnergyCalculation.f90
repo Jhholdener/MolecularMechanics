@@ -1,21 +1,34 @@
 module EnergyCalculation
     use StoreInput
+    use PairsTripletsQuadruplets
     implicit none
     save
     private
-    public :: EnergyFunc, StretchEnergy, BendEnergy, TorsEnergy
+    public :: EnergyFunc
 
     real, parameter :: kCC = 310.0, kCH = 340.0     !force constants
-    real, parameter :: rCH = 1.090, rCC = 1.526     !equilibrium bond length
+    !real, parameter :: rCH = 1.090, rCC = 1.526     !equilibrium bond length
     real, parameter :: KthetaCCC = 40.0, KthetaCCH = 50.0, KthetaHCH = 35.0     !Ktheta constants per bond combination
     real, parameter :: thetaCCC = 114.0, thetaCCH = 109.5, thetaHCH = 109.5     !theta constants per bond combination
     real, parameter :: VABCD = 1.40, gamma = 0.0, ntors = 2.0   !constants for torsional energy
+    real, parameter :: eC = 0.1094, eH = 0.0157, RC = 1.9080, RH = 1.4590   !constants for Van der Waals term
+    real, parameter :: qC = -0.145, qH = 0.145   !partial charge constants 
+    real, parameter :: pi = 3.14159
 
 
 contains
-    real function EnergyFunc()
+    real function EnergyFunc(DataArray, numtriplets, numdihedrals)
+        type(atom), allocatable, intent(in) :: DataArray(:)
+        integer, intent(in)                 :: numtriplets, numdihedrals
+        integer, allocatable                :: PairMatrix(:,:), TripletMatrix(:,:), DihedralMatrix(:,:)
+        
+        call FindPairs(DataArray, PairMatrix)
+        call FindTriplets(PairMatrix, numtriplets, TripletMatrix)
+        call FindQuadruplets(PairMatrix, numdihedrals, DihedralMatrix)
 
-        EnergyFunc = 1
+        EnergyFunc = StretchEnergy(PairMatrix, DataArray) + BendEnergy(TripletMatrix, DataArray) +&
+            TorsEnergy(DihedralMatrix, DataArray) + NonBondEnergy(PairMatrix, DataArray)
+        print *, 'Total energy term is:', EnergyFunc
     end function EnergyFunc
 
 
@@ -24,7 +37,7 @@ contains
         integer, intent(in), allocatable        :: PairMatrix(:,:)
         type(atom), intent(in), allocatable     :: DataArray(:)
         integer                                 :: looplength, i, j, countr=0
-        real*8                                  :: rAB
+        real                                  :: rAB
         real, allocatable                       :: stretchenergies(:)
 
         looplength = size(PairMatrix(1,:))
@@ -48,6 +61,7 @@ contains
             enddo
         enddo
         StretchEnergy = sum(stretchenergies)
+        print *, 'Stretching energy term is:', StretchEnergy
     end function StretchEnergy
 
 
@@ -56,8 +70,8 @@ contains
         type(atom), intent(in), allocatable     :: DataArray(:)
         integer                                 :: looplength, i, A, B, C, countH, countC
         real, allocatable                       :: bendenergies(:)
-        real*8                                  :: theta
-        real*8                                  :: xBA, yBA, zBA, xBC, yBC, zBC, vBA(3), vBC(3)
+        real                                  :: theta
+        real                                  :: xBA, yBA, zBA, xBC, yBC, zBC, vBA(3), vBC(3)
 
         looplength = size(TripletMatrix(1,:))
         allocate(bendenergies(looplength))
@@ -104,6 +118,7 @@ contains
             endif
         enddo
         BendEnergy = sum(bendenergies)
+        print *, 'Bending energy term is:', BendEnergy
     end function BendEnergy
 
 
@@ -112,8 +127,8 @@ contains
         type(atom), intent(in), allocatable     :: DataArray(:)
         integer                                 :: looplength, i, A, B, C, D
         real, allocatable                       :: torsenergies(:)
-        real*8                                  :: theta, xBA, yBA, zBA, xBC, yBC, zBC, xCD, yCD, zCD
-        real*8                                  :: vBA(3), vBC(3), vCB(3), vCD(3), orthABC(3), orthDCB(3)
+        real                                  :: theta, xBA, yBA, zBA, xBC, yBC, zBC, xCD, yCD, zCD
+        real                                  :: vBA(3), vBC(3), vCB(3), vCD(3), orthABC(3), orthDCB(3)
 
         looplength = size(DihedralMatrix(1,:))
         allocate(torsenergies(looplength))
@@ -152,10 +167,60 @@ contains
         enddo
 
         TorsEnergy = sum(torsenergies)
+        print *, 'Torsional energy term is:', TorsEnergy
     end function TorsEnergy
 
-    real function NonBondEnergy()
-        NonBondEnergy = 1
+    real function NonBondEnergy(PairMatrix, DataArray)
+        integer, allocatable, intent(in)    :: PairMatrix(:,:)
+        type(atom), allocatable, intent(in) :: DataArray(:)
+        real, allocatable                   :: vdwenergies(:), nbenergies(:)
+        integer                             :: looplength, nonbondedpairs, i, j, countr=0
+        real                              :: Rij2, Rij, Rij6, Rij12
+        real                                :: eij, RijStar, Aij, Bij, qi, qj
+        
+        looplength = size(PairMatrix(1,:))
+        nonbondedpairs = (looplength**2-looplength)/2-(looplength-1)
+        allocate(vdwenergies(nonbondedpairs), nbenergies(nonbondedpairs))
+
+        do i = 1, looplength
+            do j = i+1, looplength
+                if (PairMatrix(i,j) == 0) then
+                    countr = countr+1
+                    
+                    Rij2 = (DataArray(i)%x-DataArray(j)%x)**2+(DataArray(i)%y-DataArray(j)%y)**2&
+                    +(DataArray(i)%z-DataArray(j)%z)**2
+                    Rij = sqrt(Rij2)
+                    Rij6 = Rij2**3
+                    Rij12 = Rij6**2
+                    
+                    if (DataArray(i)%element == 'C' .and. DataArray(j)%element == 'C') then
+                        eij = eC
+                        RijStar = 2*RC
+                        qi = qC
+                        qj = qC
+                    elseif (DataArray(i)%element == 'H' .and. DataArray(j)%element == 'H') then
+                        eij = eH
+                        RijStar = 2*RH
+                        qi = qH
+                        qj = qH
+                    else    !one is C and one is H
+                        eij = sqrt(eC*eH)
+                        RijStar = RC + RH
+                        qi = qC     !the order does not really matter here
+                        qj = qH
+                    endif
+
+                    Aij = eij*RijStar**12
+                    Bij = 2*eij*RijStar**6
+
+                    vdwenergies(countr) = abs(Aij/Rij12 - Bij/Rij6)
+                    nbenergies(countr)  = (qi*qj)/(4*pi*eij*Rij)
+                endif
+            enddo
+        enddo
+        
+        NonBondEnergy = sum(vdwenergies) + sum(nbenergies)
+        print *, 'Nonbonded energy term is:', NonBondEnergy
     end function NonBondEnergy
 
 end module EnergyCalculation

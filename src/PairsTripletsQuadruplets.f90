@@ -8,7 +8,7 @@ contains
         integer, allocatable, intent(out)   :: PairMatrix(:,:)
         type(atom), allocatable, intent(in) :: DataArray(:)
         integer                             :: i, j
-        real*8                              :: bondlength
+        real                              :: bondlength
         
         ! make a matrix having all atom pairs as 1 and the rest as 0!
         allocate(PairMatrix(size(DataArray),size(DataArray)))

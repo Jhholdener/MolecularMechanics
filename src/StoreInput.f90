@@ -5,7 +5,7 @@ module StoreInput
 
     type Atom
         character(len=2)    :: element
-        real              :: x, y, z
+        real                :: x, y, z
     end type
 
 contains

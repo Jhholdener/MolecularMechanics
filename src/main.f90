@@ -1,6 +1,7 @@
 program prog1
    use StoreInput
    use EnergyCalculation
+   use MetropolisAlgorithm
 
    implicit none
    
@@ -8,9 +9,9 @@ program prog1
    type(atom), allocatable :: DataArray(:)
    real                 :: dummy5
 
-   
-   call StoreData("c4h10.xyz", DataArray, numtriplets, numdihedrals)
+   call Metropolis("c4h10.xyz")
+   !call StoreData("c4h10.xyz", DataArray, numtriplets, numdihedrals)
 
-   dummy5 = EnergyFunc(DataArray, numtriplets, numdihedrals)
+   !dummy5 = EnergyFunc(DataArray, numtriplets, numdihedrals)
    
 end program

@@ -8,7 +8,7 @@ contains
         integer, allocatable, intent(out)   :: PairMatrix(:,:)
         type(atom), allocatable, intent(in) :: DataArray(:)
         integer                             :: i, j
-        real                              :: bondlength
+        real                                :: bondlength
         
         ! make a matrix having all atom pairs as 1 and the rest as 0!
         allocate(PairMatrix(size(DataArray),size(DataArray)))
@@ -38,11 +38,13 @@ contains
         integer, allocatable, intent(in)        :: PairMatrix(:,:)
         integer, intent(in)                     :: numtriplets
         integer, allocatable, intent(out)       :: TripletMatrix(:,:) 
-        integer                                 :: i, j, k, n, counta=0, countr=0, looplength, newcomb(3)
+        integer                                 :: i, j, k, n, counta, countr, looplength, newcomb(3)
         integer, allocatable                    :: seencomb(:,:)
         !integer, allocatable                    :: temp(:,:)
         logical                                 :: check
 
+        counta = 0
+        countr = 0
         allocate(TripletMatrix(3,numtriplets))
         allocate(seencomb(3, numtriplets*2))
         looplength = size(PairMatrix(1,:))
@@ -119,10 +121,12 @@ contains
         integer, allocatable, intent(in)        :: PairMatrix(:,:)
         integer, intent(in)                     :: numdihedrals
         integer, allocatable, intent(out)       :: DihedralMatrix(:,:) 
-        integer                                 :: i, j, k, l, n, counta=0, countr=0, looplength, newcomb(4)
+        integer                                 :: i, j, k, l, n, counta, countr, looplength, newcomb(4)
         integer, allocatable                    :: seencomb(:,:)
         logical                                 :: check
 
+        counta = 0
+        countr = 0
         allocate(DihedralMatrix(4,numdihedrals))
         allocate(seencomb(4, numdihedrals*2))
         looplength = size(PairMatrix(1,:))

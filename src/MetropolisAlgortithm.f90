@@ -7,15 +7,18 @@ module MetropolisAlgorithm
     private
     public :: Metropolis
 
+    real, parameter :: kb = 1.38064852e-23, T = 298
+
 contains
 
-    subroutine Metropolis(filename)
-        character(len=*), intent(in)    :: filename
-        type(atom), allocatable         :: DataArray(:), DataArrayNew(:), DataArrayRandom(:)
-        integer, allocatable            :: PairMatrix(:,:), TripletMatrix(:,:), DihedralMatrix(:,:)
-        
-        integer                         :: numtriplets, numdihedrals, i, n, nloops
-        real                            :: Energy, Energynew, DeltaEnergy, factorR, randomx, randomy, randomz
+    subroutine Metropolis(filename, NewCoordinates)
+        character(len=*), intent(in)            :: filename
+        type(atom), allocatable                 :: DataArray(:), DataArrayNew(:), DataArrayRandom(:)
+        type(atom), allocatable, intent(out)    :: NewCoordinates(:)
+        integer, allocatable                    :: PairMatrix(:,:), TripletMatrix(:,:), DihedralMatrix(:,:)
+        integer                                 :: numtriplets, numdihedrals, i, nloops, countr
+        real                                    :: Energy, EnergyInitial, Energynew, DeltaEnergy
+        real                                    :: factorR, randomx, randomy, randomz, pA, randomq
 
         call StoreData(filename, DataArray, numtriplets, numdihedrals)
         
@@ -24,12 +27,14 @@ contains
         call FindQuadruplets(PairMatrix, numdihedrals, DihedralMatrix)
 
         Energy = EnergyFunc(DataArray, PairMatrix, TripletMatrix, DihedralMatrix)
+        EnergyInitial = Energy
         
 
-        factorR = 0.001
+        factorR = 0.0001
         nloops = 100
+        countr = 0
         
-        do n = 1, nloops
+        do while (countr < 100)
             DataArrayRandom = DataArray
             DataArrayNew = DataArray
             
@@ -61,9 +66,31 @@ contains
             enddo
 
             Energynew = EnergyFunc(DataArrayNew, PairMatrix, TripletMatrix, DihedralMatrix)
-            !print*, Energynew
-            !DeltaEnergy = Energy - EnergyNew
+            DeltaEnergy = EnergyNew - Energy
+            print *, 'New total Energy is', Energynew
+            
+            pA = exp(-DeltaEnergy/(kb*T))
+
+            if (DeltaEnergy < 0) then
+                DataArray = DataArrayNew
+                Energy = Energynew
+                countr = 0
+                print *, 'Change accepted'
+            else
+                call random_number(randomq)
+                if (randomq < pA) then
+                    DataArray = DataArrayNew
+                    Energy = Energynew
+                    countr = 0
+                    print *, 'Change accepted'
+                else
+                    countr = countr +1
+                    print *, 'Change declined'
+                endif
+            endif
         enddo
-        print *, DataArrayNew(1)%x, DataArray(1)%x
+        print *, 'The initial total energy was:           ', EnergyInitial
+        print *, 'The final total energy of the system is:', Energy
+        NewCoordinates = DataArray
     end subroutine Metropolis
 end module MetropolisAlgorithm

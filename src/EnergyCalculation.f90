@@ -23,7 +23,7 @@ contains
 
         EnergyFunc = StretchEnergy(PairMatrix, DataArray) + BendEnergy(TripletMatrix, DataArray) +&
             TorsEnergy(DihedralMatrix, DataArray) + NonBondEnergy(PairMatrix, DataArray)
-        print *, 'Total energy term is:', EnergyFunc
+        !print *, 'Total energy term is:', EnergyFunc
     end function EnergyFunc
 
 
